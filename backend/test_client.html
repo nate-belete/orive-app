@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Occasion OS - API Test Client</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .section h2 {
+            color: #2563eb;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .result {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success { color: #059669; }
+        .error { color: #dc2626; }
+        .items-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .item-card {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 15px;
+        }
+        .item-card h3 {
+            color: #111;
+            margin-bottom: 8px;
+        }
+        .item-card p {
+            color: #666;
+            font-size: 13px;
+            margin: 4px 0;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #374151;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Occasion OS - API Test Client</h1>
+        <p style="color: #666; margin-bottom: 20px;">
+            Backend API: <strong>http://localhost:8000</strong> | 
+            <a href="http://localhost:8000/docs" target="_blank" style="color: #2563eb;">View Swagger Docs</a>
+        </p>
+        
+        <!-- Demo Data Button -->
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; padding: 20px; margin-bottom: 30px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h2 style="color: white; margin-bottom: 15px; font-size: 1.5em;">🚀 Quick Start</h2>
+            <p style="color: rgba(255,255,255,0.9); margin-bottom: 20px;">Load demo data with sample closet items, occasions, and playbooks</p>
+            <button onclick="loadDemoData()" style="background: white; color: #667eea; font-size: 16px; padding: 15px 40px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                ▶️ Load Demo Data & Play
+            </button>
+            <div id="demoResult" style="margin-top: 15px; color: white; font-weight: 500;"></div>
+        </div>
+
+        <!-- Closet Section -->
+        <div class="section">
+            <h2>👔 Closet Management</h2>
+            <div class="form-group">
+                <label>Name:</label>
+                <input type="text" id="itemName" placeholder="e.g., Navy blazer">
+            </div>
+            <div class="form-group">
+                <label>Category:</label>
+                <select id="itemCategory">
+                    <option value="top">Top</option>
+                    <option value="bottom">Bottom</option>
+                    <option value="outerwear">Outerwear</option>
+                    <option value="shoes">Shoes</option>
+                    <option value="accessory">Accessory</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Color:</label>
+                <input type="text" id="itemColor" placeholder="e.g., navy">
+            </div>
+            <div class="form-group">
+                <label>Formality (1-5):</label>
+                <input type="number" id="itemFormality" value="3" min="1" max="5">
+            </div>
+            <div class="form-group">
+                <label>Season:</label>
+                <select id="itemSeason">
+                    <option value="all">All</option>
+                    <option value="summer">Summer</option>
+                    <option value="winter">Winter</option>
+                    <option value="spring">Spring</option>
+                    <option value="fall">Fall</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Notes:</label>
+                <textarea id="itemNotes" rows="2" placeholder="Optional notes"></textarea>
+            </div>
+            <button onclick="addClosetItem()">Add Closet Item</button>
+            <button onclick="loadClosetItems()">Refresh Closet</button>
+            <div id="closetResult" class="result" style="display:none;"></div>
+            <div id="closetItems" class="items-list"></div>
+        </div>
+
+        <!-- Occasion Section -->
+        <div class="section">
+            <h2>📅 Create Occasion</h2>
+            <div class="form-group">
+                <label>Occasion Type:</label>
+                <input type="text" id="occasionType" placeholder="e.g., interview, wedding, date">
+            </div>
+            <div class="form-group">
+                <label>Date & Time:</label>
+                <input type="datetime-local" id="occasionDateTime">
+            </div>
+            <div class="form-group">
+                <label>Location:</label>
+                <input type="text" id="occasionLocation" placeholder="e.g., Downtown Office">
+            </div>
+            <div class="form-group">
+                <label>Dress Code:</label>
+                <input type="text" id="occasionDressCode" placeholder="e.g., business casual">
+            </div>
+            <div class="form-group">
+                <label>Desired Outcome:</label>
+                <input type="text" id="occasionOutcome" value="confident" placeholder="e.g., confident, authoritative">
+            </div>
+            <button onclick="createOccasion()">Create Occasion</button>
+            <button onclick="loadOccasions()">Load Occasions</button>
+            <div id="occasionResult" class="result" style="display:none;"></div>
+            <div id="occasionsList"></div>
+        </div>
+
+        <!-- Playbook Section -->
+        <div class="section">
+            <h2>📋 Generate Playbook</h2>
+            <div class="form-group">
+                <label>Occasion ID:</label>
+                <input type="number" id="playbookOccasionId" placeholder="Enter occasion ID">
+            </div>
+            <button onclick="generatePlaybook()">Generate Playbook</button>
+            <div id="playbookResult" class="result" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+
+        function showResult(elementId, data, isError = false) {
+            const el = document.getElementById(elementId);
+            el.style.display = 'block';
+            el.className = `result ${isError ? 'error' : 'success'}`;
+            el.textContent = JSON.stringify(data, null, 2);
+        }
+
+        async function addClosetItem() {
+            const data = {
+                name: document.getElementById('itemName').value,
+                category: document.getElementById('itemCategory').value,
+                color: document.getElementById('itemColor').value,
+                formality: parseInt(document.getElementById('itemFormality').value),
+                season: document.getElementById('itemSeason').value,
+                notes: document.getElementById('itemNotes').value
+            };
+            try {
+                const res = await fetch(`${API_BASE}/closet/items`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                showResult('closetResult', result);
+                loadClosetItems();
+            } catch (error) {
+                showResult('closetResult', { error: error.message }, true);
+            }
+        }
+
+        async function loadClosetItems() {
+            try {
+                const res = await fetch(`${API_BASE}/closet/items`);
+                const items = await res.json();
+                const container = document.getElementById('closetItems');
+                container.innerHTML = items.map(item => `
+                    <div class="item-card">
+                        <h3>${item.name}</h3>
+                        <p><strong>Category:</strong> ${item.category}</p>
+                        <p><strong>Color:</strong> ${item.color}</p>
+                        <p><strong>Formality:</strong> ${item.formality}/5</p>
+                        <p><strong>Season:</strong> ${item.season}</p>
+                        ${item.notes ? `<p><em>${item.notes}</em></p>` : ''}
+                    </div>
+                `).join('');
+            } catch (error) {
+                showResult('closetResult', { error: error.message }, true);
+            }
+        }
+
+        async function createOccasion() {
+            const datetime = document.getElementById('occasionDateTime').value;
+            if (!datetime) {
+                alert('Please select a date and time');
+                return;
+            }
+            const data = {
+                occasion_type: document.getElementById('occasionType').value,
+                datetime_local: new Date(datetime).toISOString(),
+                location: document.getElementById('occasionLocation').value,
+                dress_code: document.getElementById('occasionDressCode').value,
+                weather_hint: '',
+                budget: 0,
+                comfort: 'medium',
+                desired_outcome: document.getElementById('occasionOutcome').value
+            };
+            try {
+                const res = await fetch(`${API_BASE}/occasions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                showResult('occasionResult', result);
+                loadOccasions();
+            } catch (error) {
+                showResult('occasionResult', { error: error.message }, true);
+            }
+        }
+
+        async function loadOccasions() {
+            try {
+                const res = await fetch(`${API_BASE}/occasions`);
+                const occasions = await res.json();
+                const container = document.getElementById('occasionsList');
+                container.innerHTML = occasions.map(occ => `
+                    <div class="item-card">
+                        <h3>${occ.occasion_type}</h3>
+                        <p><strong>Date:</strong> ${new Date(occ.datetime_local).toLocaleString()}</p>
+                        <p><strong>Location:</strong> ${occ.location || 'N/A'}</p>
+                        <p><strong>Outcome:</strong> ${occ.desired_outcome}</p>
+                        <p><strong>ID:</strong> ${occ.id}</p>
+                        <button onclick="viewPlaybook(${occ.id})" style="margin-top: 10px; background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+                            View Playbook
+                        </button>
+                    </div>
+                `).join('');
+            } catch (error) {
+                showResult('occasionResult', { error: error.message }, true);
+            }
+        }
+
+        async function generatePlaybook() {
+            const occasionId = document.getElementById('playbookOccasionId').value;
+            if (!occasionId) {
+                alert('Please enter an occasion ID');
+                return;
+            }
+            try {
+                // Try to get existing playbook first
+                let res = await fetch(`${API_BASE}/playbooks/occasion/${occasionId}`);
+                if (!res.ok) {
+                    // Generate new one
+                    res = await fetch(`${API_BASE}/playbooks/generate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ occasion_id: parseInt(occasionId) })
+                    });
+                }
+                const result = await res.json();
+                displayPlaybook(result);
+            } catch (error) {
+                showResult('playbookResult', { error: error.message }, true);
+            }
+        }
+
+        function viewPlaybook(occasionId) {
+            document.getElementById('playbookOccasionId').value = occasionId;
+            generatePlaybook();
+            // Scroll to playbook section
+            document.getElementById('playbookResult').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function displayPlaybook(playbook) {
+            const container = document.getElementById('playbookResult');
+            container.style.display = 'block';
+            container.className = 'result success';
+            
+            let html = `<h3 style="color: #2563eb; margin-bottom: 15px;">📋 Playbook for Occasion #${playbook.occasion_id}</h3>`;
+            
+            // Outfits
+            if (playbook.look && playbook.look.outfits) {
+                html += `<h4 style="margin-top: 20px; color: #333;">👔 Outfit Options (${playbook.look.outfits.length})</h4>`;
+                playbook.look.outfits.forEach((outfit, idx) => {
+                    html += `<div style="background: #f9fafb; border-left: 4px solid #2563eb; padding: 15px; margin: 10px 0; border-radius: 4px;">`;
+                    html += `<strong style="color: #111; font-size: 16px;">${outfit.title}</strong>`;
+                    html += `<p style="margin: 8px 0; color: #666;"><strong>Items:</strong> ${outfit.items.map(i => i.name).join(', ')}</p>`;
+                    html += `<p style="margin: 8px 0; color: #666;">${outfit.reasoning}</p>`;
+                    if (outfit.risk_flags && outfit.risk_flags.length > 0) {
+                        html += `<p style="color: #dc2626; margin-top: 8px;">⚠️ ${outfit.risk_flags.join(', ')}</p>`;
+                    }
+                    html += `</div>`;
+                });
+            }
+            
+            // Prep Timeline
+            if (playbook.prep) {
+                html += `<h4 style="margin-top: 20px; color: #333;">⏰ Prep Timeline</h4>`;
+                html += `<div style="background: #f9fafb; padding: 15px; margin: 10px 0; border-radius: 4px;">`;
+                html += `<p><strong>Day Before:</strong> ${playbook.prep.day_before?.join(', ') || 'N/A'}</p>`;
+                html += `<p><strong>Morning Of:</strong> ${playbook.prep.morning_of?.join(', ') || 'N/A'}</p>`;
+                html += `<p><strong>Pack:</strong> ${playbook.prep.pack?.join(', ') || 'N/A'}</p>`;
+                html += `</div>`;
+            }
+            
+            // Presence Coaching
+            if (playbook.presence) {
+                html += `<h4 style="margin-top: 20px; color: #333;">💬 Presence Coaching</h4>`;
+                html += `<div style="background: #f9fafb; padding: 15px; margin: 10px 0; border-radius: 4px;">`;
+                if (playbook.presence.tips && playbook.presence.tips.length > 0) {
+                    html += `<p><strong>Tips:</strong></p><ul style="margin-left: 20px;">`;
+                    playbook.presence.tips.forEach(tip => html += `<li>${tip}</li>`);
+                    html += `</ul>`;
+                }
+                if (playbook.presence.scripts && playbook.presence.scripts.length > 0) {
+                    html += `<p style="margin-top: 10px;"><strong>Scripts:</strong></p><ul style="margin-left: 20px;">`;
+                    playbook.presence.scripts.forEach(script => html += `<li>${script}</li>`);
+                    html += `</ul>`;
+                }
+                html += `</div>`;
+            }
+            
+            // Beauty Notes
+            if (playbook.beauty && playbook.beauty.notes) {
+                html += `<h4 style="margin-top: 20px; color: #333;">💄 Beauty Notes</h4>`;
+                html += `<div style="background: #f9fafb; padding: 15px; margin: 10px 0; border-radius: 4px;">`;
+                html += `<ul style="margin-left: 20px;">`;
+                playbook.beauty.notes.forEach(note => html += `<li>${note}</li>`);
+                html += `</ul></div>`;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        async function loadDemoData() {
+            const resultDiv = document.getElementById('demoResult');
+            resultDiv.textContent = 'Loading demo data...';
+            resultDiv.style.color = 'white';
+            
+            try {
+                const res = await fetch(`${API_BASE}/demo/load`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const result = await res.json();
+                
+                if (res.ok) {
+                    resultDiv.innerHTML = `✅ ${result.message}<br>Loaded: ${result.closet_items} items, ${result.occasions} occasions, ${result.playbooks} playbooks`;
+                    resultDiv.style.color = '#90EE90';
+                    
+                    // Refresh all data
+                    setTimeout(() => {
+                        loadClosetItems();
+                        loadOccasions();
+                        // Auto-load first playbook if available
+                        if (result.occasions > 0) {
+                            document.getElementById('playbookOccasionId').value = 1;
+                            generatePlaybook();
+                        }
+                    }, 500);
+                } else {
+                    resultDiv.textContent = `❌ Error: ${result.detail || 'Failed to load demo data'}`;
+                    resultDiv.style.color = '#FFB6C6';
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ Error: ${error.message}`;
+                resultDiv.style.color = '#FFB6C6';
+            }
+        }
+
+        // Load data on page load
+        window.onload = () => {
+            loadClosetItems();
+            loadOccasions();
+            // Set default datetime to tomorrow
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            document.getElementById('occasionDateTime').value = tomorrow.toISOString().slice(0, 16);
+        };
+    </script>
+</body>
+</html>
+

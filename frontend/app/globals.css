@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-cream text-charcoal font-body;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-heading;
+  }
+}
+
+@layer components {
+  /* Primary button — black (public pages) */
+  .btn-primary-dark {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 bg-charcoal text-white font-body font-semibold text-sm rounded-pill hover:bg-gray-700 transition-colors;
+  }
+
+  /* Primary button — gold gradient (authenticated pages) */
+  .btn-primary-gold {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-white font-body font-semibold text-sm rounded-pill transition-all;
+    background: linear-gradient(135deg, #C4A265 0%, #D4B87A 100%);
+  }
+  .btn-primary-gold:hover {
+    background: linear-gradient(135deg, #B8964F 0%, #C9A96E 100%);
+  }
+
+  /* Secondary / outline button */
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 bg-transparent text-charcoal font-body font-medium text-sm rounded-pill border border-gray-300 hover:bg-gray-50 transition-colors;
+  }
+
+  /* Text link style */
+  .link-gold {
+    @apply text-gold hover:text-gold-light transition-colors underline-offset-2;
+  }
+
+  /* Overline text (uppercase letter-spaced labels) */
+  .overline {
+    @apply text-overline uppercase tracking-[0.15em] font-body font-medium text-gold;
+  }
+
+  /* Form input */
+  .input-field {
+    @apply w-full px-4 py-3 bg-white border border-gray-300 rounded-lg font-body text-sm text-charcoal placeholder:text-gray-400 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-colors;
+  }
+
+  /* Form label */
+  .input-label {
+    @apply block text-sm font-semibold font-body text-charcoal mb-1.5;
+  }
+
+  /* Card */
+  .card {
+    @apply bg-white rounded-xl shadow-card p-6;
+  }
+
+  /* Safe area for mobile bottom nav */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Skip to content link (accessibility) */
+  .skip-link {
+    @apply absolute -top-12 left-4 z-[100] bg-charcoal text-white px-4 py-2 rounded-lg font-body text-sm transition-all;
+  }
+  .skip-link:focus {
+    @apply top-4;
+  }
+}
+
+/* Focus visible ring for keyboard navigation */
+@layer utilities {
+  .focus-ring {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/50 focus-visible:ring-offset-2;
+  }
+}
