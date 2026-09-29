@@ -1,0 +1,96 @@
+Build me a reusable "skill": a folder with a SKILL.md instruction file plus a Python script, so an AI assistant can repeatedly run a before/after cycle time impact analysis. Create the files, test the script on synthetic data, fix any bugs, and give me the final files.
+
+## Context
+I have complaints data with a start timestamp, end timestamp (blank if still open), categorical columns about the complaint (type, product, channel, severity, etc.), and a resolver/analyst ID. An AI tool was introduced for analysts on a go-live date. I need to measure its impact on cycle time at a high level (overall) and a micro level (by category and by resolver), with statistics that hold up to scrutiny.
+
+## Folder structure
+complaint-cycle-time-impact/
+  SKILL.md
+  scripts/analyze_impact.py
+
+## SKILL.md requirements
+YAML frontmatter:
+- name: complaint-cycle-time-impact
+- description: write it to trigger broadly. Use it for before/after impact of any tool, automation, or process change on cycle time, turnaround, time-to-resolution, or handle time for complaints, tickets, or cases with start/end timestamps, categories, and resolvers. Include questions like "did X make us faster?" even when "impact analysis" isn't said.
+
+Body sections:
+1. Confirm setup (ask the user, or state assumptions):
+   - Go-live date, and whether rollout was staggered.
+   - Adoption flag, if one exists.
+   - Washout period after go-live (default 14 days, with a sensitivity check).
+   - Assign period by START timestamp.
+   - Calendar hours vs business days.
+   - Keep open cases as censored; never drop them.
+   - Quality guardrail columns (reopens, rework, QA) if they exist.
+2. How to run the script, with a CLI example.
+3. Macro analysis and how to interpret each output.
+4. Micro analysis and how to interpret each output.
+5. Stronger designs when the data allows:
+   - Difference-in-differences for staggered rollout or partial adoption, including a parallel pre-trends check.
+   - Case-level usage flag, with a selection-bias caveat.
+   - Seasonality comparison against the prior year.
+6. Report template:
+   - Bottom line (adjusted % effect with CI, plus median and p90 change in plain units)
+   - Overall
+   - Where it helped and didn't
+   - Resolver view (spread of effects, no individual rankings)
+   - Caveats (only those that apply)
+   Language rules:
+   - If a CI includes 0, say "no detectable change at this sample size."
+   - Without a control group, say "associated with," not "caused."
+   - Separate statistical significance from practical significance.
+7. Common mistakes to catch:
+   - Dropping open cases
+   - Assigning period by end date
+   - Ignoring a pre-existing trend
+   - Reporting the mean only on skewed data
+   - No multiple-testing correction
+   - Attributing a mix shift to the tool
+   - Ignoring clustering by resolver
+   - Ignoring quality metrics
+
+Explain the "why" behind each step rather than just issuing rules.
+
+## Script requirements (scripts/analyze_impact.py)
+Dependencies: pandas, numpy, scipy, matplotlib only (no statsmodels or lifelines; implement the methods directly).
+
+CLI arguments:
+- csv (positional)
+- --start
+- --end
+- --cutoff (go-live date)
+- --categories (comma-separated)
+- --resolver
+- --washout-days (default 14)
+- --unit hours|bdays
+- --asof (extract date for censoring open cases; default is the max end date)
+- --min-n (default 20)
+- --n-boot (default 5000)
+- --n-boot-seg (default 2000)
+- --out (output directory)
+
+1. Prep and data quality:
+   - Parse timestamps.
+   - Compute duration (for open cases, measure to the as-of date and flag them as censored).
+   - Count missing starts, duplicates, negative durations, washout exclusions, straddlers (opened pre, closed post), and open cases per period.
+2. Macro:
+   - Pre/post profile: n, median, p75, p90, mean, skew.
+   - Bootstrap the DIFFERENCE (post − pre) for median, p90, and mean. Resample each group independently each iteration, vectorized in batches. Report the 95% percentile CI, a two-sided bootstrap p-value, and % change.
+   - Ratio of geometric means via Welch t-test on log durations, with CI.
+   - Kaplan–Meier median time-to-close per period, including censored cases.
+   - Interrupted time series on weekly log-median (weeks with n≥5): OLS with intercept, pre-trend, level change, and slope change. Report betas, SEs, p-values, and multiplicative effects.
+3. Micro:
+   - For each category column and for the resolver column, compute per-level n_pre, n_post, median and p90 pre/post.
+   - If both periods have n≥min-n, add: bootstrap median-difference CI, p-value, % change, and GM ratio.
+   - Apply Benjamini–Hochberg q-values within each column.
+   - Kitagawa mix-vs-rate decomposition of the change in mean for each category column.
+   - Adjusted effect: OLS of log(duration) on post + category dummies + resolver fixed effects, restricted to resolvers present in both periods. Use cluster-robust (by resolver) sandwich SEs with small-sample adjustment, and df = clusters−1. Report exp(beta_post) with a 95% CI; this is the headline effect.
+4. Outputs to --out:
+   - summary.md with markdown tables of all of the above, including the count of significant segments at q<0.10 and resolver improvement stats (share improved, median and IQR of % changes).
+   - CSVs for each table.
+   - PNGs: pre/post histogram on a log x-axis, weekly median trend with a go-live line, and forest plots of % change in median with CIs for each category and for the resolver.
+
+## Testing
+Generate about 6,000 synthetic complaints over roughly 8 months with 4 complaint types (different base durations), 3 products, 25 resolvers, lognormal durations, a built-in ~20–25% post-go-live speedup (smaller for one type), and some open cases at the end. Run the script, confirm it recovers the built-in effect, fix any errors, and show me the summary.md output.
+
+If you are Claude Code, save the folder under .claude/skills/ in my project (or ~/.claude/skills/ for all projects). Otherwise, just give me the files.
