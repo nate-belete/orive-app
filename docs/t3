@@ -1,0 +1,99 @@
+# Review: automated prompt optimization plan for a binary LLM classifier
+
+You have read access to our golden dataset. Review the plan below against the
+real data and our environment, then write a review report. Do NOT build or run
+the optimizer yet.
+
+## Context
+- Goal: a classifier prompt (instructions + few-shot examples) that gets
+  recall ≥ 95% with the highest possible precision, measured against human
+  labels. Only the prompt changes; the model's weights never do.
+- Data: <TABLE/PATH>, ~20k rows. `label` = human label (positive =
+  <POSITIVE_VALUE>). `split` = train / eval / holdout / <MULTISHOT_VALUE>.
+- Allowed features: <FEATURE_COLS>. No other column may ever reach a prompt.
+- Classifier LLM: <CLASSIFIER_MODEL> via <GATEWAY>.
+  Optimizer LLM: <OPTIMIZER_MODEL>.
+
+## Proposed plan
+1. The classifier returns JSON {reasoning, score 0-100}. This format is locked.
+2. Metric "precision@95R": among thresholds that give recall ≥ 95%, take the
+   one with the highest precision.
+3. Engine: GEPA `optimize_anything` through its official Agent Skill
+   (`/plugin marketplace add gepa-ai/gepa`,
+   `/plugin install gepa-optimize-anything@gepa`).
+   - train → `dataset` (GEPA learns from errors on small batches)
+   - eval sample → `valset`: ~2,000 eval rows with positives oversampled and
+     precision reweighted to the true base rate
+   - holdout → `test_set`
+   - Two components evolve: the instructions, and an ordered list of ≤12
+     example IDs drawn only from train or multi-shot rows. The evaluator
+     rejects any other ID.
+   - The evaluator scores one record at a time with a stand-in score
+     (positives: score/100, weighted up; negatives: 1 - score/100) and passes
+     feedback (MISS / FALSE_ALARM plus the model's reasoning).
+4. Because GEPA scores records one at a time, re-rank its candidate prompts on
+   the eval sample by true precision@95R. Set the final threshold on the full
+   eval split, then score holdout once and report Wilson 95% CIs.
+5. Glue we build: data loader with feature whitelist, split mapping,
+   prediction cache, reweighting, final report. Package it as a skill using
+   Anthropic's skill-creator.
+- Alternatives considered: DSPy (MIPROv2 / GEPA), MLflow optimize_prompts,
+  Bedrock Advanced Prompt Optimization.
+
+## What to review
+
+### A. Data audit (summary stats only for holdout; never read its rows)
+- Rows, positives and positive rate per split. Any null or unexpected labels.
+- Statistical power: for eval and holdout, give the Wilson 95% CI for recall
+  if observed recall were exactly 95%. Is that tight enough to trust?
+- Leakage: exact or near-duplicate feature content across splits, id
+  overlap, and any feature that encodes the label or the split.
+- Multi-shot rows: count, label balance, overlap with eval/holdout.
+- Features: types, null rates, text-length distribution. Estimated tokens
+  per record and per prompt with 12 examples.
+- Split quality: random or stratified? Any skew in time or segment between
+  splits?
+- Label quality: on ≤50 train rows, flag labels that look inconsistent with
+  the features.
+
+### B. Plan critique
+- Is precision@95R on a 0-100 score the right metric? Risk from ties or
+  coarse scores?
+- Are the eval sample size and oversampling right for our base rate?
+  Propose numbers.
+- Will the stand-in score track precision@95R? Propose weights or a better
+  stand-in.
+- Re-ranking on eval: how much overfitting risk? Do we need a second, fresh
+  eval sample?
+- Example-ID component: risks, and the right max number of examples given
+  context length and cost.
+- Anything that would make the holdout number untrustworthy.
+
+### C. Tool fit
+- Verify that GEPA and its Agent Skill support what the plan assumes:
+  multi-component prompts, dataset/valset/test_set, a per-record evaluator
+  with feedback, budget limits, and our model provider via <GATEWAY>. Cite
+  docs or source code. Flag gaps and workarounds.
+- Briefly compare DSPy, MLflow and Bedrock for our setup. Recommend one.
+- Environment: can we install packages? Do we have network access to the
+  model APIs? What are the data-handling rules for sending records to a model
+  (PII, approved models and endpoints)?
+
+### D. Cost and runtime
+- Estimate LLM calls, tokens, cost and wall-clock time for the baseline, a
+  full GEPA run at the proposed budget, and the final eval + holdout scoring.
+  State your assumptions.
+
+## Rules
+- Read-only. Do not run the optimizer.
+- Never send holdout rows to any LLM, and never read their contents.
+- If you test anything against a model, use ≤20 train rows and say so.
+
+## Deliverable
+A markdown report, under 2 pages, with tables and code in an appendix:
+1. Verdict: go / go with changes / no-go, in 3 sentences.
+2. Data audit table and findings.
+3. Plan issues ranked by severity, each with a concrete fix.
+4. Tool recommendation with evidence.
+5. Cost estimate.
+6. Open questions for me.
